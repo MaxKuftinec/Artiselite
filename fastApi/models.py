@@ -26,8 +26,9 @@ class OutboundProduct(Base):
 
 	id = Column(Integer, primary_key=True, index=True)
 	name = Column(String)
-	supplier_information = Column(String)
 	quantity = Column(Integer)
+	remarks = Column(String)
+	destination = Column(String)
 
 class Role(Base):
 	__tablename__ = "roles"

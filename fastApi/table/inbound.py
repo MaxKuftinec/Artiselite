@@ -26,7 +26,7 @@ class InboundRequest(BaseModel):
 async def get_inbound_products(db: db_dependency):
 	return (db.query(InboundProduct).all())
 
-@router.post("/products")
+@router.post("/inbound-products")
 async def create_product(db: db_dependency, product_request: InboundRequest):
 	new_product = InboundProduct(name=product_request.name, supplier_information=product_request.supplier_information, location=product_request.location, quantity=product_request.quantity)
 	db.add(new_product)
@@ -34,7 +34,7 @@ async def create_product(db: db_dependency, product_request: InboundRequest):
 	db.refresh(new_product)
 	return (new_product)
 
-@router.delete("/products/{product_id}")
+@router.delete("/inbound-products/{product_id}")
 async def delete_product(db: db_dependency, product_id: int = Path(gt=0)): # I have no idea what gt=0 means
 	product_result = db.query(InboundProduct).filter(InboundProduct.id == product_id).first()
 	
@@ -45,7 +45,7 @@ async def delete_product(db: db_dependency, product_id: int = Path(gt=0)): # I h
 		db.commit()
 		return {"message": "Product successfully deleted"}
 	
-@router.put("/products/{product_id}")
+@router.put("/inbound-products/{product_id}")
 async def update_product(db: db_dependency, product_id: int, product_request: InboundRequest):
 	product_result = db.query(InboundProduct).filter(InboundProduct.id == product_id).first()
 
@@ -60,6 +60,3 @@ async def update_product(db: db_dependency, product_id: int, product_request: In
 	db.add(product_result)
 	db.commit()
 	return {"message": "Product successfully updated"}
-  
-	
-    

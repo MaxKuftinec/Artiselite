@@ -26,11 +26,21 @@ async def get_products(db: db_dependency):
 
 @router.post("/products")
 async def create_product(db: db_dependency, product_request: ProductRequest):
-	new_product = Product(name=product_request.name, quantity=product_request.quantity)
-	db.add(new_product)
-	db.commit()
-	db.refresh(new_product)
-	return (new_product)
+	# Check if the product already exists first
+	existing_product = db.query(Product).filter(Product.name == product_request.name).first()
+
+	if existing_product:
+		existing_product.quantity += product_request.quantity
+		db.commit()
+		db.refresh(existing_product)
+		return {"message": "Product already exists. The quantity has been updated.", "product": existing_product}
+
+	else:
+		new_product = Product(name=product_request.name, quantity=product_request.quantity)
+		db.add(new_product)
+		db.commit()
+		db.refresh(new_product)
+		return {"message": "Product successfully created", "product": new_product}
 
 @router.delete("/products/{product_id}")
 async def delete_product(db: db_dependency, product_id: int = Path(gt=0)): # I have no idea what gt=0 means
@@ -56,6 +66,3 @@ async def update_product(db: db_dependency, product_id: int, product_request: Pr
 	db.add(product_result)
 	db.commit()
 	return {"message": "Product successfully updated"}
-  
-	
-    

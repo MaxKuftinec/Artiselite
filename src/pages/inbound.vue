@@ -52,7 +52,7 @@
 						></v-text-field>
 
 						<v-text-field
-							v-model="newProduct.information"
+							v-model="newProduct.supplier_information"
 							label="Supplier Information"
 							required
 						></v-text-field>
@@ -97,6 +97,7 @@
 						<template v-slot:item.actions="{ item }">
 							<v-icon @click="editProduct(item)">mdi-pencil</v-icon>
 							<v-icon @click="deleteProduct(item)">mdi-delete</v-icon>
+							<v-icon @click="done(item)">mdi-check</v-icon>
 						</template>
 
 						<template v-slot:item.name="{ item }">
@@ -105,6 +106,24 @@
 							</template>
 							<template v-else>
 								{{ item.name }}
+							</template>
+						</template>
+
+						<template v-slot:item.supplier_information="{ item }">
+							<template v-if="item.isEditing">
+								<v-text-field v-model="item.supplier_information" density="compact" @keyup.enter="editProduct(item)"></v-text-field>
+							</template>
+							<template v-else>
+								{{ item.supplier_information }}
+							</template>
+						</template>
+
+						<template v-slot:item.location="{ item }">
+							<template v-if="item.isEditing">
+								<v-text-field v-model="item.location" density="compact" @keyup.enter="editProduct(item)"></v-text-field>
+							</template>
+							<template v-else>
+								{{ item.location }}
 							</template>
 						</template>
 
@@ -143,7 +162,7 @@
 				valid: false,
 				newProduct: {
 					name: '',
-					information: '',
+					supplier_information: '',
 					location: '',
 					quantity: 0
 				},
@@ -151,7 +170,7 @@
 				headers: [
 					{ title: 'Name', key: 'name'},
 					{ title: 'Quantity', key: 'quantity'},
-					{ title: 'Supplier Information', key: 'information'},
+					{ title: 'Supplier Information', key: 'supplier_information'},
 					{ title: 'Location', key: 'location'},
 					{ title: 'Edit', key: 'actions', sortable: false}
 				],
@@ -184,11 +203,13 @@
 
 		methods: {
 			addProduct() {
-				if (this.newProduct.name && this.newProduct.information && this.newProduct.quantity >= 0) {
+				if (this.newProduct.name && this.newProduct.supplier_information && this.newProduct.location && this.newProduct.quantity >= 0) {
 					this.newProduct.quantity = parseInt(this.newProduct.quantity);
 					this.postProducts(this.newProduct);
 					this.fetchProducts(); // It could be done this way, but I think it's better to add it immedeately to the product object
 					this.newProduct.name = '';
+					this.newProduct.supplier_information = '';
+					this.newProduct.location = '';
 					this.newProduct.quantity = 0;
 				}
 			},
@@ -213,12 +234,12 @@
 					// const index = this.products.indexOf(item); // Why need this?
 					// if (index > -1) { // Activate this if above line is activated
 					try {
-						const	response = await axios.delete(`${API_BASE_URL}/products/${item.id}`);
+						const	response = await axios.delete(`${API_BASE_URL}/inbound-products/${item.id}`);
 						if (response.status === 200)
 							// this.products.splice(index, 1); // What's emit? this.@emit('updated-product', this.products)
 							this.fetchProducts();
 						else
-							console.error("Failed to remove item:", respnse.data);
+							console.error("Failed to remove item:", response.data);
 					}
 					catch (error) {
 						console.error("Error removing item from product:", error.response ? error.response.data : error.message);
@@ -229,7 +250,7 @@
 
 			async putProduct(item) {
 				try {
-					const response = await axios.put(`${API_BASE_URL}/products/${item.id}`, item);
+					const response = await axios.put(`${API_BASE_URL}/inbound-products/${item.id}`, item);
 					if (response.status !== 200)
 						console.error("Failed to update product", response.data);
 				}
@@ -237,28 +258,10 @@
           console.error("Error updating product:", error.response? error.response.data : error.message);
         }
 			},
-
-			// For some reason, every character that is written in the text field will trigger this function 3 times where products is iterated by all products key
-			// Apparently, this is not needed
-			customFilter(products, search, key) {
-				if (key.columns.name == products){
-					console.log("Are you serious?");
-					console.log(`search: ${search}`);
-					console.log(`products: ${products}`);
-					console.log(`key: ${JSON.stringify(key)}`);
-					console.log(key.columns);
-					console.log(key.columns.name);
-
-					return (key.columns);
-
-					const searchLower = search.toLowerCase();
-					// return products.filter(item => item[key].toLowerCase().includes(searchLower));
-				}
-			},
-
+			
 			async fetchProducts() {
 				try {
-					const response = await axios.get(`${API_BASE_URL}/products`);
+					const response = await axios.get(`${API_BASE_URL}/inbound-products`);
 					this.products = response.data;
 					// console.log(this.products);
 				}
@@ -269,7 +272,7 @@
 
 			async postProducts(newProduct) {
 				try {
-					const response = await axios.post(`${API_BASE_URL}/products`, newProduct);
+					await axios.post(`${API_BASE_URL}/inbound-products`, newProduct);
 				}
 				catch (error) {
           console.error("Error posting product ley:", error);
@@ -288,6 +291,38 @@
 				const userStore = useUserStore();
 				userStore.logout();
 				this.$router.push('/login');
+			},
+
+			async done(item) {
+				const res = await this.confirm({ content: `${item.name} has arrived to the warehouse?`, title: 'Mark as done' });
+				const arrivedProduct = {name: item.name, quantity: item.quantity};
+
+				if (res) {
+					try {
+						const response = await axios.post(`${API_BASE_URL}/products`, arrivedProduct);
+						try {
+							const	response = await axios.delete(`${API_BASE_URL}/inbound-products/${item.id}`);
+							if (response.status === 200)
+								// this.products.splice(index, 1); // What's emit? this.@emit('updated-product', this.products)
+								this.fetchProducts();
+							else
+								console.error("Failed to remove item:", response.data);
+						}
+						catch (error) {
+							console.error("Error removing item from product:", error.response ? error.response.data : error.message);
+						}
+					}
+					catch (error) {
+						console.error("Error checkmarking the inbound product:", error);
+						if (error.response) {
+							const statusCode = error.response.status;
+							if (statusCode === 400)
+								this.$toast.error("Invalid data. Please check your input");
+							else
+								this.$toast.error("Failed to add item");
+						}
+					}
+				};
 			}
 		},
 

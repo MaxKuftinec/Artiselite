@@ -51,7 +51,6 @@
             >
               Create User
             </v-btn>
-						<v-btn class="mt-4 ml-4" color="primary" to="/">Home</v-btn>
           </v-form>
           <p v-if="errorMessage" class="error-text">{{ errorMessage }}</p>
         </div>
@@ -60,6 +59,7 @@
         <h3>Current User</h3>
         <p>Username: {{ currentUser.username }}</p>
         <p>Role: {{ roleName(currentUser.role_id) }}</p>
+        <v-btn class="mt-4 ml-4" color="primary" to="/">Home</v-btn>
       </v-card-text>
     </v-card>
 	</v-container>

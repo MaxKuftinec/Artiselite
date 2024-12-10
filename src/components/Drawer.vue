@@ -1,6 +1,6 @@
 <template>
-  <v-layout>
-    <v-navigation-drawer v-model="drawer">
+  <v-layout style="height: 100%">
+    <v-navigation-drawer v-model="drawer" style="height: 100%">
       <v-list density="compact" item-props :items="items" nav />
 
       <template #append>
@@ -36,7 +36,7 @@
       </template>
     </v-app-bar>
 
-    <v-main>
+    <v-main v-if="currentUser.role_id !== 2">
       <div class="pa-4">
         <v-sheet
           border="dashed md"
@@ -104,8 +104,6 @@
 								{{ item.quantity }}
 							</template>
 						</template>
-
-
 					</v-data-table>
 				</v-sheet>
       </div>
@@ -163,6 +161,7 @@
 				],
 				drawer: true,
 				search: '',
+				currentUser: {},
 			}
 		},
 
@@ -272,11 +271,19 @@
 				const userStore = useUserStore();
 				userStore.logout();
 				this.$router.push('/login');
+			},
+
+			async fetchCurrentUser() {
+				const userStore = useUserStore();
+
+				await userStore.fetchUserInfo();
+				this.currentUser = userStore.user;
 			}
 		},
 
 		mounted() {
 			this.fetchProducts();
+			this.fetchCurrentUser();
 		}
 	};
 </script>
